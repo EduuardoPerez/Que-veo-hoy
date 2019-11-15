@@ -13,8 +13,8 @@
                 var pelicula, actores;
                 
                 pelicula = data.pelicula;
-                actores = data.actores;
-                genero = data.pelicula.nombre;
+                actores = JSON.parse(data.actores);
+                genero = data.pelicula.nombre;                
 
                 $(".imagen").attr("src", pelicula.poster);
                 $(".titulo, title").html(pelicula.titulo + " (" + pelicula.anio + ")");

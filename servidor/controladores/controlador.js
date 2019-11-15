@@ -37,6 +37,7 @@ const crearQuery = (seleccionUsuario) => {
   }
 };
 
+
 // Se obtiene el total de peliculas que hay en la BBDD
 const contarPeliculas = () => {
   return new Promise ((resolve, reject) => {
@@ -50,6 +51,7 @@ const contarPeliculas = () => {
     });
   });
 };
+
 
 // Se obtienen todas las peliculas de la BBDD
 const obtenerPeliculas = (req, res) => {
@@ -69,6 +71,7 @@ const obtenerPeliculas = (req, res) => {
     res.send(JSON.stringify(response));
   });
 
+  /*
   console.log('\n----------\nDesde peliculas query\n'+JSON.stringify(req.query));
   console.log('\nreq.query.pagina: '+JSON.stringify(req.query.pagina));
   console.log('req.query.cantidad: '+JSON.stringify(req.query.cantidad));
@@ -78,8 +81,10 @@ const obtenerPeliculas = (req, res) => {
   console.log('req.query.genero: '+JSON.stringify(req.query.genero));
   console.log('req.query.anio: '+JSON.stringify(req.query.anio));
   console.log('-----------------------');
-  
+  */
+ 
 };
+
 
 // Se obtienen todos los generos de las peliculas
 const obtenerGeneros = (req, res) => {
@@ -97,7 +102,90 @@ const obtenerGeneros = (req, res) => {
   });
 }
 
+
+// Se obtienen los actores de una pelicula
+const obtenerActores = (id) => {
+  sql = `select actor.nombre
+          from actor
+          join actor_pelicula
+          on actor.id = actor_pelicula.actor_id
+          where actor_pelicula.pelicula_id = ${id};`;
+
+  console.log(sql);
+  
+  return new Promise ((resolve, reject) => {
+    conn.query(sql, (error, resultado) => {
+      if(error){
+        console.log('Hubo un error en la consulta de actores', error.message);
+        reject(error);
+        return res.status(404).send('Hubo un error en la consulta de actores');
+      }
+      console.log('Actores: ',JSON.stringify(resultado));
+      
+      resolve(JSON.stringify(resultado));
+    });
+  });
+};
+
+
+// Dado un id devuelve la información de una película
+const obtenerInfoPelicula = (req, res) => {
+  
+  const peliculaID = req.params.id;
+
+  const sql = `select pelicula.poster, pelicula.titulo, pelicula.anio, pelicula.trama, pelicula.fecha_lanzamiento, pelicula.director, pelicula.duracion, pelicula.puntuacion, genero.nombre
+                from pelicula 
+                join genero
+                on pelicula.genero_id = genero.id
+                where pelicula.id = ${peliculaID};`
+
+  console.log(sql);
+  
+
+  conn.query(sql, async (error, result) => {    
+    if(error){
+      console.log('Hubo un error en la consulta', error.message);
+      return res.status(404).send("Hubo un error en la consulta");
+    }
+
+    const resultado = result[0];    
+
+    if (resultado===undefined) {
+      return res.status(404).send({message: 'No se encontró la película'});
+    }
+    else {
+      const response = {
+        'pelicula' : {
+          'poster' : resultado.poster,
+          'titulo' : resultado.titulo,
+          'anio' : resultado.anio,
+          'trama' : resultado.trama,
+          'fecha_lanzamiento' : resultado.fecha_lanzamiento,
+          'director' : resultado.director,
+          'duracion' : resultado.duracion,
+          'puntuacion' : resultado.puntuacion,
+          'nombre' : resultado.nombre // corresponde al genero de la pelicula
+        },
+        actores: await obtenerActores(peliculaID)
+      }
+
+      /*
+      console.log('-----------------------');
+      console.log('response: ',response);
+      console.log('-----------------------');
+      */
+      res.send(JSON.stringify(response));
+    }
+  });
+  
+
+
+  const actores = { nombre: '' };
+
+};
+
 module.exports = {
   obtenerPeliculas: obtenerPeliculas,
-  obtenerGeneros: obtenerGeneros
+  obtenerGeneros: obtenerGeneros,
+  obtenerInfoPelicula: obtenerInfoPelicula
 };

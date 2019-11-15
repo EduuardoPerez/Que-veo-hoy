@@ -17,6 +17,7 @@ app.use(bodyParser.json());
 
 //rutas
 app.get('/peliculas', controlador.obtenerPeliculas);
+app.get('/peliculas/:id', controlador.obtenerInfoPelicula);
 app.get('/generos', controlador.obtenerGeneros);
 
 //seteamos el puerto en el cual va a escuchar los pedidos la aplicación
