@@ -1,7 +1,7 @@
 const conn = require('../lib/conexionbd')
 
-// Crea la query según los parametros que reciba
-const crearQuery = (seleccionUsuario) => {
+// Crea la query para obtener las películas según los parametros que reciba
+const crearQueryObtenerPeliculas = (seleccionUsuario) => {
   const pagina = seleccionUsuario.pagina;
   const cantidad = seleccionUsuario.cantidad;
   const columna_orden = seleccionUsuario.columna_orden;
@@ -43,9 +43,9 @@ const contarPeliculas = () => {
   return new Promise ((resolve, reject) => {
     conn.query(`select count(id) as cantidad from pelicula`, (error, resultado) => {
       if(error){
-        console.log('Hubo un error en la consulta de totales', error.message);
+        console.log('Hubo un error en la consulta para contar la cantidad de peliculas', error.message);
         reject(error);
-        return res.status(404).send('Hubo un error en la consulta de totales');
+        return res.status(404).send('Hubo un error en la consulta para contar la cantidad de peliculas');
       }
       resolve(resultado[0].cantidad);
     });
@@ -55,14 +55,12 @@ const contarPeliculas = () => {
 
 // Se obtienen todas las peliculas de la BBDD
 const obtenerPeliculas = (req, res) => {
-  const sql = crearQuery(req.query);
-
-  console.log(sql);
+  const sql = crearQueryObtenerPeliculas(req.query);
 
   conn.query(sql, async (error, resultado) => {    
     if(error){
-      console.log('Hubo un error en la consulta', error.message);
-      return res.status(404).send("Hubo un error en la consulta");
+      console.log('Hubo un error en la consulta para obtener las películas', error.message);
+      return res.status(404).send('Hubo un error en la consulta  para obtener las películas');
     }  
     const response = {
       'peliculas': resultado,
@@ -70,19 +68,6 @@ const obtenerPeliculas = (req, res) => {
     }
     res.send(JSON.stringify(response));
   });
-
-  /*
-  console.log('\n----------\nDesde peliculas query\n'+JSON.stringify(req.query));
-  console.log('\nreq.query.pagina: '+JSON.stringify(req.query.pagina));
-  console.log('req.query.cantidad: '+JSON.stringify(req.query.cantidad));
-  console.log('req.query.columna_orden: '+JSON.stringify(req.query.columna_orden));
-  console.log('req.query.titulo: '+JSON.stringify(req.query.titulo));
-  console.log('req.query.tipo_orden: '+JSON.stringify(req.query.tipo_orden));
-  console.log('req.query.genero: '+JSON.stringify(req.query.genero));
-  console.log('req.query.anio: '+JSON.stringify(req.query.anio));
-  console.log('-----------------------');
-  */
- 
 };
 
 
@@ -92,8 +77,8 @@ const obtenerGeneros = (req, res) => {
 
   conn.query(sql, (error, resultado, campos) => {
     if(error){
-      console.log('Hubo un error en la consulta', error.message);
-      return res.status(404).send('Hubo un error en la consulta');
+      console.log('Hubo un error en la consulta para obtener los géneros', error.message);
+      return res.status(404).send('Hubo un error en la consulta para obtener los géneros');
     }
     const response = {
       'generos': resultado
@@ -110,17 +95,14 @@ const obtenerActores = (id) => {
           join actor_pelicula
           on actor.id = actor_pelicula.actor_id
           where actor_pelicula.pelicula_id = ${id};`;
-
-  console.log(sql);
   
   return new Promise ((resolve, reject) => {
     conn.query(sql, (error, resultado) => {
       if(error){
-        console.log('Hubo un error en la consulta de actores', error.message);
+        console.log('Hubo un error en la consulta para obtener los actores', error.message);
         reject(error);
-        return res.status(404).send('Hubo un error en la consulta de actores');
+        return res.status(404).send('Hubo un error en la consulta para obtener los actores');
       }
-      console.log('Actores: ',JSON.stringify(resultado));
       
       resolve(JSON.stringify(resultado));
     });
@@ -137,18 +119,15 @@ const obtenerInfoPelicula = (req, res) => {
                 from pelicula 
                 join genero
                 on pelicula.genero_id = genero.id
-                where pelicula.id = ${peliculaID};`
-
-  console.log(sql);
-  
+                where pelicula.id = ${peliculaID};`  
 
   conn.query(sql, async (error, result) => {    
     if(error){
-      console.log('Hubo un error en la consulta', error.message);
-      return res.status(404).send("Hubo un error en la consulta");
+      console.log('Hubo un error en la consulta para obtener la información de las películas', error.message);
+      return res.status(404).send('Hubo un error en la consulta para obtener la información de las películas');
     }
 
-    const resultado = result[0];    
+    const resultado = result[0];
 
     if (resultado===undefined) {
       return res.status(404).send({message: 'No se encontró la película'});
@@ -168,24 +147,102 @@ const obtenerInfoPelicula = (req, res) => {
         },
         actores: await obtenerActores(peliculaID)
       }
-
-      /*
-      console.log('-----------------------');
-      console.log('response: ',response);
-      console.log('-----------------------');
-      */
       res.send(JSON.stringify(response));
     }
   });
-  
-
-
-  const actores = { nombre: '' };
-
 };
+
+
+// Crea la query para obtener las películas según los parametros que reciba
+const crearQueryObtenerRecomendacion = (seleccionUsuario) => {
+  const anio_inicio = seleccionUsuario.anio_inicio;
+  const anio_fin = seleccionUsuario.anio_fin;
+  const genero = seleccionUsuario.genero;
+  const puntuacion = seleccionUsuario.puntuacion;
+  
+  if(!anio_inicio && !anio_fin && !genero && !puntuacion){
+    return `select pelicula.id, pelicula.poster, pelicula.trama, pelicula.titulo, genero.nombre as nombre
+              from pelicula
+              join genero
+              on pelicula.genero_id = genero.id;`
+  }
+  if(!anio_inicio && !anio_fin && genero && !puntuacion){
+    return `select pelicula.id, pelicula.poster, pelicula.trama, pelicula.titulo, genero.nombre as nombre
+              from pelicula
+              join genero
+              on pelicula.genero_id = genero.id
+              where genero.nombre = '${genero}';`
+  }
+  if(!anio_inicio && !anio_fin && !genero && puntuacion){
+    return `select pelicula.id, pelicula.poster, pelicula.trama, pelicula.titulo, genero.nombre as nombre
+              from pelicula
+              join genero
+              on pelicula.genero_id = genero.id
+              where pelicula.puntuacion >= ${puntuacion};`
+  }
+  if(!anio_inicio && !anio_fin && genero && puntuacion){
+    return `select pelicula.id, pelicula.poster, pelicula.trama, pelicula.titulo, genero.nombre as nombre
+              from pelicula
+              join genero
+              on pelicula.genero_id = genero.id
+              where genero.nombre = '${genero}'
+              and pelicula.puntuacion >= ${puntuacion};`
+  }
+  if(anio_inicio && anio_fin && !genero && !puntuacion){
+    return `select pelicula.id, pelicula.poster, pelicula.trama, pelicula.titulo, genero.nombre as nombre
+              from pelicula
+              join genero
+              on pelicula.genero_id = genero.id
+              where pelicula.anio between ${anio_inicio} and ${anio_fin};`
+  }
+  if(anio_inicio && anio_fin && !genero && puntuacion){
+    return `select pelicula.id, pelicula.poster, pelicula.trama, pelicula.titulo, genero.nombre as nombre
+              from pelicula
+              join genero
+              on pelicula.genero_id = genero.id
+              where pelicula.anio between ${anio_inicio} and ${anio_fin} 
+              and pelicula.puntuacion >= ${puntuacion};`
+  }
+  if(anio_inicio && anio_fin && genero && !puntuacion){
+    return `select pelicula.id, pelicula.poster, pelicula.trama, pelicula.titulo, genero.nombre as nombre
+              from pelicula
+              join genero
+              on pelicula.genero_id = genero.id
+              where pelicula.anio between ${anio_inicio} and ${anio_fin}
+              and genero.nombre = '${genero}';`
+  }
+  if(anio_inicio && anio_fin && genero && puntuacion){
+    return `select pelicula.id, pelicula.poster, pelicula.trama, pelicula.titulo, genero.nombre as nombre
+              from pelicula
+              join genero
+              on pelicula.genero_id = genero.id
+              where pelicula.anio between ${anio_inicio} and ${anio_fin}
+              and genero.nombre = '${genero}'
+              and pelicula.puntuacion >= ${puntuacion};`
+  }
+};
+
+// Se ofrece una recomendación de pelicula al usuario según su selección
+const obtenerRecomendacion = (req, res) => {
+  
+  const sql = crearQueryObtenerRecomendacion(req.query);
+  
+  conn.query(sql, (error, resultado) => {    
+    if(error){
+      console.log('Hubo un error en la consulta para obtener las películas recomendadas', error.message);
+      return res.status(404).send('Hubo un error en la consulta para obtener las películas recomendadas');
+    }  
+    const response = {
+      'peliculas': resultado,
+    }
+    res.send(JSON.stringify(response));
+  });
+};
+
 
 module.exports = {
   obtenerPeliculas: obtenerPeliculas,
   obtenerGeneros: obtenerGeneros,
-  obtenerInfoPelicula: obtenerInfoPelicula
+  obtenerInfoPelicula: obtenerInfoPelicula,
+  obtenerRecomendacion: obtenerRecomendacion
 };
